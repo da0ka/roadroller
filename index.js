@@ -188,11 +188,12 @@ class SparseContextModel extends DirectContextModel{
 
 	flushByte(currentByte,inBits){
 		super.flushByte(currentByte,inBits);
-		this.recentBytes.unshift(currentByte);
-		for(var i=--this.recentBytes.length,context=0;i;)
+		var i,B=this.recentBytes,context=0;
+		B.unshift(currentByte);
+		for(i=--B.length;i;)
 			if(this.selector>>--i&1)
 				// this can result in negative numbers, which should be "fixed" by later bit masking
-				context=(context+this.recentBytes[i])*997|0;
+				context=(context+B[i])*997|0;
 		this.sparseContext=context
 	}
 }
@@ -389,7 +390,7 @@ class Packer{
 			dynamicModels:options.dynamicModels,
 			allowFreeVars:options.allowFreeVars,
 			disableWasm:options.disableWasm,
-			zip:options.zip
+			zip:options.zip,exe:options.exe
 		};
 		this.inputsByType={};
 		this.evalInput=null;
@@ -489,7 +490,7 @@ class Packer{
 			(tokens[tokens.length-1]||{}).type===TYPE_LineTerminatorSequence&&tokens.pop();
 			inputTokens.push(tokens)
 		}
-		const unseenChars = new Set;
+		const unseenChars=new Set;
 		for(let i=128;i;)
 			// even though there might be no whitespace in the tokens,
 			// we may have to need some space between two namelike tokens later.
@@ -583,10 +584,10 @@ class Packer{
 
 	static doPack(preparedText,preparedJs,mainInputAction,options){
 		// TODO if we are to have multiple inputs they have to be splitted
-		const combinedInput=[...preparedText.text,...preparedJs.code].map(c=>c.charCodeAt(0));
+		const combinedInput=[...preparedText.text,...preparedJs.code].map(c=>c.charCodeAt());
 
 		const inBits=8-combinedInput.every(c=>c<128);
-		const outBits=6;
+		const outBits=6,exe=options.exe;
 		// TODO again, this should be controlled dynamically
 		const modelQuotes=!!(options.dynamicModels&DYN_MODEL_QUOTES);
 		const{
@@ -709,7 +710,7 @@ class Packer{
 			secondLineInit.push([`τ`,`0`],[`ρ`,`0`],[`λ`,`0`]),
 			quotes.length>0&&secondLineInit.push([`χ`,`0`]);
 
-		let secondLine=
+		let secondLine=exe?
 			// 2. initialize more variables
 			// these can be efficiently initialized in a single statement,
 			// but plain arguments are more efficient if the decoder is wrapped with Function.
@@ -746,71 +747,73 @@ class Packer{
 			// ν: bit context, equal to `0b1xx..xx` where xx..xx is currently read bits
 			// if ν got more than inBits bits we are done reading one input character
 			`)for(;ν<${1<<inBits};`+
-				// 6. calculate the mixed prediction Σ
+				// 6. calculate the mixed prediction ε
 				// δ: context hash
-				// μ: model index 
-				// α: scratch variable
-				// ε: stretched probabilities later used by prediction adjustment
-				`ε=φ.map((δ,μ)=>(`+
-					`α=π[δ]*2+1,`+
+				// Σ: model index 
+				// φ: scratch variable
+				// β: stretched probabilities later used by prediction adjustment
+				`β=α.map((δ,Σ)=>(`+
+					`φ=π[δ]*2+1,`+
 					// stretch(prob), needed for updates
-					`α=Math.log(α/(θ-α)),`+
-					`Σ-=ω[μ]*α,`+
+					`φ=Math.log(φ/(θ-φ)),`+
+					`ε-=ω[Σ]*φ,`+
 					// premultiply with learning rate
-					`α/${recipLearningRate})),`+
+					`φ/${recipLearningRate})),`+
 				// 7. read a single bit from the normalized state
 				// depends both on step 5 (renormalization) and on step 6 (mixed prediction).
 				//
-				// Σ: squash(sum of weighted preds) followed by adjustment
-				`Σ=~-θ/(1+Math.exp(Σ))|1,`+
-				// β: decoded bit
-				`β=τ%θ<Σ,`+
-				`τ=τ%θ+(β?Σ:θ-Σ)*(τ>>${precision+1})-!β*Σ,`+
+				// ε: squash(sum of weighted preds) followed by adjustment
+				`ε=~-θ/(1+Math.exp(ε))|1,`+
+				// μ: decoded bit
+				`μ=τ%θ<ε,`+
+				`τ=τ%θ+(μ?ε:θ-ε)*(τ>>${precision+1})-!μ*ε,`+
 
-				// 8. update contexts and weights with β and ν (which is now the bit context)
+				// 8. update contexts and weights with μ and ν (which is now the bit context)
 				// δ: context hash
-				// μ: model index (unique in the entire code)
-				// also makes use of φ and ε below.
-				`φ.map((δ,μ)=>(`+
+				// Σ: model index (unique in the entire code)
+				// also makes use of α and β below.
+				`α.map((δ,Σ)=>(`+
 					// update the bitwise context.
-					// α is not used but used here to exploit a repeated code fragment
-					`α=π[δ]+=`+
-						`(β*${pow2(precision)}-π[δ]<<${29-precision})/`+
+					// φ is not used but used here to exploit a repeated code fragment
+					`φ=π[δ]+=`+
+						`(μ*${pow2(precision)}-π[δ]<<${29-precision})/`+
 							`((κ[δ]+=κ[δ]<${modelMaxCount})+${modelBaseCount})`+
 						// this corresponds to delta in the DirectContextModel.update method;
 						// we've already verified delta is within +/-2^31, so `>>>` is not required
 						`>>${29-precision},`+
 					// update the weight
-					`ω[μ]+=ε[μ]*(β-Σ/θ)`+
-				`)),ν+=ν+β)`+
+					`ω[Σ]+=β[Σ]*(μ-ε/θ)`+
+				`)),ν+=ν+μ)`+
 			`for(`+
 				// 4. calculate context hashes (can be done after 5, but placed here to fill the space)
-				// Σ: sum of weighted probabilities
-				// φ: an array of context hashes
+				// ε: sum of weighted probabilities
+				// α: an array of context hashes
 				(singleDigitSelectors?
-					`φ='${selectors.map(i=>i.join('')).join(0)}'.split(Σ=0)`
+					`α='${selectors.map(i=>i.join('')).join(0)}'.split(ε=0)`
 				:
-					`Σ=0,φ=[[${selectors.join("],[")}]]`
-				)+`.map((δ,μ)=>`+
+					`ε=0,α=[[${selectors.join("],[")}]]`
+				)+`.map((δ,Σ)=>`+
 					// δ: an array of context offsets (1: last byte, 2: second-to-last byte, ...)
-					// μ: model index 
-					// α: context hash accumulator
+					// Σ: model index 
+					// φ: context hash accumulator
 					`(`+
-						`α=0,`+
-						`${singleDigitSelectors?`[...δ]`:`δ`}.map((δ,μ)=>`+
+						`φ=0,`+
+						`${singleDigitSelectors?`[...δ]`:`δ`}.map((δ,Σ)=>`+
 							// δ: context offset
 							// redundant argument and parentheses exploit a common code fragment
-							`α=α*997+(ο[λ-δ]|0)|0`+
+							`φ=φ*997+(ο[λ-δ]|0)|0`+
 						`),`+
-						`${pow2(contextBits)}-1&α*997+ν${quotes.length?'+!!χ*129':''}`+
-					`)*${numModels}+μ`+
+						`${pow2(contextBits)}-1&φ*997+ν${quotes.length?'+!!χ*129':''}`+
+					`)*${numModels}+Σ`+
 				`);`+
 				// 5. renormalize (and advance the input offset) if needed
 				// this is also used to read the initial state from the input,
 				// so has to be placed before step 7 (read a single bit).
 				`τ<${pow2(28-outBits)};`+
 				`τ=τ*${1<<outBits}|ι.charCodeAt(ρ++)&${(1<<outBits)-1}`+
-			`);`;
+			`);`:
+		//fast & small decoder
+		`for(${options.allowFreeVars?`ο=[τ=ρ=λ=Σ=${quotes.length>0?'χ=':''}0],β=[],α=[]`:''};ν=λ<${inputLength};${quotes.length?`ο[λ++]=ν-=${1<<inBits},χ=χ?ν-χ&&χ:${quotes.length>1?`(${quotes.map(q=>`ν==${q}`).join('|')})&&ν`:`ν==${quotes[0]}&&ν`}`:`ο[λ++]=ν-${1<<inBits}`})for(;ν<128;ν+=ν+μ){for(δ of'${selectors.map(i=>i.join('')).join(0)}'.split(ε=0)){φ=0;for(δ of δ)φ=997*φ+(ο[λ-δ]|0)|0;φ=2*π[α[Σ]=${numModels}*(${pow2(contextBits)}-1&997*φ+ν${quotes.length?'+!!χ*129':''})+Σ]+1,β[Σ]=φ=Math.log(φ/(θ-φ)),ε-=φ*ω[Σ++]}for(ε=~-θ/(1+Math.exp(ε))|1;τ<32*θ;τ=64*τ|63&ι.charCodeAt(ρ++));for(μ=τ%θ<ε,τ=τ%θ+(μ?ε:θ-ε)*(τ>>${precision+1})-!μ*ε;Σ;ω[Σ]+=β[Σ]/${recipLearningRate}*(μ-ε/θ))π[δ=α[--Σ]]+=(μ*${pow2(precision)}-π[δ]<<${29-precision})/((κ[δ]+=κ[δ]<${modelMaxCount})+${modelBaseCount})>>${29-precision}}`;
 
 		// 10. postprocessing and action
 		// also should clobber π and κ unless they are function arguments,
@@ -838,9 +841,7 @@ class Packer{
 		const[scopeSensitive,prefix,suffix]={
 			// TODO is it significantly slower than the indirect eval `(0,eval)`?
 			'eval':[true,`eval(`,`)`],
-
 			'write':[false,`document.write(`,`)`],
-
 			// undocumented, mainly used for debugging
 			'console':[false,`console.log(`,`)`],
 			'return':[true,``,``]
@@ -862,17 +863,17 @@ class Packer{
 			'xp'+// from `exp`
 			(quotes.length?'f':''); // from `for`
 
-		if(options.allowFreeVars){
-			firstLine+=';';
+		if(options.allowFreeVars)
+			firstLine+=';',
 			secondLine=secondLineInit.map(([v,e])=>`${v}=${e};`).join('')+secondLine+prefix+outputVar+suffix;
-		}else{
+		else{
 			// the function call will look like this:
 			//   ([M='...',],c,h,a,r,C,o,d,e,...)=>{...})([], /*initial expressions for c, h, ...*/)
 			// this is possible because Function arguments are simply concatenated with commas.
 			// fun fact: this even allows for `Function('a="foo','bar"','return a')()`!
 			firstLine=`Function("[${firstLine}"`;
 			secondLine=`,...']${actualNames.slice(1)}',"`+secondLine;
-			const args=`[],`+secondLineInit.map(([,e])=>e).join(',');
+			const args=`[],${secondLineInit.map(([,e])=>e).join(',')}${exe?'':',0,[],[]'}`;
 			if(scopeSensitive){
 				// we can't put the final call into the eval, so we should alter firstLine
 				firstLine=prefix+firstLine;
@@ -1054,4 +1055,4 @@ class Packed{
 		if(zip)return 35+this.firstLine.replace(/[\x1c?-~]/g,'').length+Math.ceil(this.firstLineLengthInBytes*(1+1/384))+estimateDeflatedSize(this.secondLine);
 		return this.firstLine.length+this.secondLine.length+1
 	}
-f}
+}

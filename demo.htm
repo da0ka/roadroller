@@ -1,6 +1,6 @@
 <!doctype html><meta charset=utf-8><meta name=viewport content=width=device-width,initial-scale=0.8,user-scalable=no><title>Roadroller: Flattens Your JavaScript Demo</title><style>
-html{background:snow;color:#111;box-sizing:border-box;font:16px MS Gothic,arial;line-height:1.5}
-code,pre,textarea{font:15px MS Gothic,monospace}
+html{background:snow;color:#111;box-sizing:border-box;line-height:1.5}
+code,input,button,select,pre,textarea{font:1em MS Gothic,monospace}
 code,pre{background:#fd7}
 *,:after,:before{box-sizing:inherit}
 body,h1,h2,h3,ol,p,ul{margin:0;padding:0;font-weight:400}
@@ -34,7 +34,7 @@ fieldset>header input{background:inherit;color:inherit;border:0;border-bottom:1p
 fieldset>form{border-top:1px solid #510;color:#510;padding:.2em .5em;width:100%;order:4}
 fieldset>form ul{margin:0;column-count:2}
 @media screen and (max-width:62em){fieldset>form ul{column-count:1}}
-fieldset>form ul.c\$inline{display:flex;flex-wrap:wrap;column-gap:2em}
+fieldset>form ul.c\$inline{display:flex;flex-wrap:wrap;column-gap:1em}
 fieldset>form li{list-style:none}
 fieldset>pre{margin:0;padding:.5em;order:3;white-space:pre-wrap;word-break:break-all;user-select:all}
 fieldset>pre>span:first-child{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
@@ -45,11 +45,6 @@ fieldset.c\$output>aside{background:#fe7}
 fieldset.c\$outdated>pre{color:#1118}
 #\$selectors{width:20em}
 input[type=number]{width:5em}
-/*
-#\$newinput{width:100%;margin:.5em 0;padding:.5em 0;border:1px solid #510;border-radius:10px;background:#510;color:#fff}
-#\$newinput:focus,#\$newinput:hover{background:#a40}
-#\$newinput:active{background:#e50}
-*/
 </style><hgroup><h1>Roadroller</h1><h2>Flattens Your JavaScript Demo</h2></hgroup>
 <div id=$inputs></div>
 <template id=$inputtemplate>
@@ -61,30 +56,32 @@ input[type=number]{width:5em}
 	<textarea id=i$data placeholder="input text / drop a file"></textarea>
 	<aside id=i$message></aside>
 	<form><ul class=c$inline>
-		<li>Type: <select id=i$type>
-			<option value=js>JavaScript
+		<li>Type:<select id=i$type>
+			<option value=js>JS
 			<!--<option value=glsl>GLSL-->
 			<!--<option value=html>HTML-->
 			<option value=text>Text
 			<!--<option value=binary:base64>Binary (base64)-->
 			<!--<option value=binary:hex>Binary (hex)-->
 		</select> <a href=#input-type title=Help></a>
-		<li>Action: <select id=i$action>
-			<option value=eval id=i$action$eval>Evaluate
+		<li>Action:<select id=i$action>
+			<option value=eval id=i$action$eval>eval
 			<!--<option value=json id=i$action$json>JSON decode-->
 			<!--<option value=string id=i$action$string>String-->
-			<option value=write id=i$action$write>Write to document
+			<option value=write id=i$action$write>write
 			<!--<option value=array>Array-->
 			<!--<option value=u8array>Typed array-->
 			<!--<option value=base64>Base64-->
-		</select> <a href=#input-action title=Help></a> <input type=button value=compress id=c>
-		inFile<select id=ip><option value="">utf-8<option value=866>ibm866<option value=l1>latin1<option value=l2>latin2<option value=l3>latin3<option value=l4>latin4<option>cyrillic<option>arabic<option>greek<option>hebrew<option>logical<option value=l6>latin6<option>iso-8859-13<option>iso-8859-14<option value=l9>iso-8859-15<option>iso-8859-16<option value=koi>koi8-r<option>koi8-u<option>mac<option>dos-874<option>cp1250<option>cp1251<option>cp1253<option value=l5>cp1254<option>cp1255<option>cp1256<option>cp1257<option>cp1258<option>x-mac-cyrillic<option>gbk<option>gb18030<option>hz-gb-2312<option>big5<option>euc-jp<option>iso-2022-jp<option>sjis<option>korean<option>iso-2022-kr<option>utf-16<option>utf-16be<option>x-user-defined<option>iso-2022-cn</select>
+		</select> <a href=#input-action title=Help></a>
+		<li><input type=button value=compress id=c>
+		<li>inFile:<select id=ip><option value="">utf-8<option value=866>ibm866<option value=l1>latin1<option value=l2>latin2<option value=l3>latin3<option value=l4>latin4<option>cyrillic<option>arabic<option>greek<option>hebrew<option>logical<option value=l6>latin6<option>iso-8859-13<option>iso-8859-14<option value=l9>iso-8859-15<option>iso-8859-16<option value=koi>koi8-r<option>koi8-u<option>mac<option>dos-874<option>cp1250<option>cp1251<option>cp1253<option value=l5>cp1254<option>cp1255<option>cp1256<option>cp1257<option>cp1258<option>x-mac-cyrillic<option>gbk<option>gb18030<option>hz-gb-2312<option>big5<option>euc-jp<option>iso-2022-jp<option>sjis<option>korean<option>iso-2022-kr<option>utf-16<option>utf-16be<option>x-user-defined<option>iso-2022-cn</select>
 		<!--<li><button id=i$extract>Extract inputs</button> <a href=#extract-inputs title=Help></a>-->
+		</ul></form>
+</fieldset>
 </template>
-<!--<button id=$newinput>Add new input</button>-->
 <fieldset id=$output class=c$output>
 <header>
-	<span><strong>Output</strong> (<span id=$outputsize>0B estimated</span>)</span>
+	<span><strong>Output</strong> (<span id=$outputsize>0B</span>)</span>
 	<button id=$newwindow hidden>Test in new window</button>
 </header>
 <pre><span id=$output1></span><span id=$output2></span></pre>
@@ -94,6 +91,7 @@ input[type=number]{width:5em}
 <li><label>Maximum memory usage: <input id=$maxmemory type=number value=150 min=10 max=1024> MB(<span id=$usedmemory>-</span> MB in use)</label> <a href=#max-memory title=Help></a>
 <li><label><input type=checkbox id=$dirty> Allow the decoder to pollute the global scope</label> <a href=#dirty title=Help></a>
 <li><input type=reset id=$reset value="Reset parameters"> <button id=$optimize>Optimize parameters</button> <a href=#optimize title=Help></a>
+<li>exe:<select id=exe><option>small<option>zippable</select> <label><input type=checkbox id=zip>zip size</label>
 </ul><details><summary>Advanced configuration</summary><ul>
 <li><label>Chosen contexts: <input id=$selectors pattern=\d+(,\d+)+></label> <a href=#chosen-contexts title=Help></a>
 <li><label>Precision: <input id=$precision type=number value=16 min=1 max=21></label> <a href=#precision title=Help></a>
@@ -102,7 +100,6 @@ input[type=number]{width:5em}
 <li><label>Model base divisor: <input id=$modelbasedivisor type=number value=20 min=1 max=99999></label> <a href=#model-base-divisor title=Help></a>
 <li><label>Dynamic model flags: <input id=$dynmodels type=number value=-1 min=-1 max=1></label> <a href=#dynamic-models title=Help></a>
 <li><label>Number of abbreviations: <input id=$numabbrevs type=number value=64 min=0 max=64></label> <a href=#num-abbreviations title=Help></a>
-<li><label><input type=checkbox id=zip>zip size</label>
 <!--<li><label><input type=checkbox id=$uncompressed> Optimize for uncompressed size</label> <a href=#uncompressed-only title=Help></a>-->
 </ul></details></form>
 </fieldset>
@@ -128,7 +125,7 @@ input[type=number]{width:5em}
 <div id=input-type>
 <p><strong>Input type</strong> determines the preprocessing step to improve the compression.<!-- Dropping a file to the input window also tries to detect the correct input type.-->
 <table>
-<tr><th>JavaScript<td>Assumes a valid JS code. Automatically removes all redundant whitespace and comments and enables a separate modelling for embedded strings. This also works for JSON.
+<tr><th>JS<td>Assumes a valid JavaScript code. Automatically removes all redundant whitespace and comments and enables a separate modelling for embedded strings. This also works for JSON.
 <!--<tr><th>GLSL<td>Assumes a valid GLSL code. Automatically removes all redundant whitespace and comments.-->
 <!--<tr><th>HTML<td>Assumes a valid HTML. (TODO)-->
 <tr><th>Text<td>Assumes a human-readable Unicode text that can be encoded in UTF-8. This can also be used for JavaScript code that should not undergo preprocessing.
@@ -138,14 +135,15 @@ input[type=number]{width:5em}
 <div id=input-action>
 <p><strong>Input action</strong> determines what to do with the decompressed data.<!-- All action except for the evaluate produces a value to the variable named <code>_</code> by default, which is either a value itself for a single input and an array of values for multiple inputs.-->
 <table>
-<tr><th>Evaluate<td><!--<em>(JS, text only)</em> -->Evaluates the decompressed JavaScript code. If there are multiple inputs there should be exactly one JavaScript input with evaluate action, since subsequent inputs will be decompressed in that code. The resulting value is always a code string, which may include decoders for subsequent inputs.
+<tr><th>eval<td><!--<em>(JS, text only)</em> -->Evaluates the decompressed JavaScript code. If there are multiple inputs there should be exactly one JavaScript input with evaluate action, since subsequent inputs will be decompressed in that code. The resulting value is always a code string, which may include decoders for subsequent inputs.
 <!--<tr><th>JSON decode<td><em>(JS, text only)</em> Parses and returns a JSON value with <code>JSON.parse</code>.-->
 <!--<tr><th>String<td><em>(No binary)</em> Returns a string.-->
-<tr><th>Write to document<td><!--<em>(No binary)</em> -->Writes a decompressed string to <code>document</code>. Typically used with HTML.
+<tr><th>write<td><!--<em>(No binary)</em> -->Writes a decompressed string to <code>document</code>. Typically used with HTML.
 <!--<tr><th>Array<td>Returns an array of bytes.-->
 <!--<tr><th>Typed array<td>Returns a <code>Uint8Array</code> value.-->
 <!--<tr><th>Base64<td>Returns a base64-encoded string. Handy for data URIs.-->
 </table>
+<p><strong>inFile</strong> determines the input file's charset when drop file on textarea.
 </div>
 <!--
 <p id=input-name><strong>Input name</strong> is required for accessing each input from the decompressed code. This is required if the input produces an output value.</p>
@@ -157,7 +155,8 @@ input[type=number]{width:5em}
 <p id=max-memory><strong>Maximum memory usage</strong> configures the maximum memory to be used both for compression and decompression. Increasing or decreasing memory usage only affects the compression ratio and not the run time. The actual memory usage can be as low as a half of the specified due to the internal architecture. The default is 150 MB.
 <p id=dirty><strong>Allowing the decoder to pollute the global scope</strong> is unsafe especially when the Roadroller output should coexist with other code or there are elements with single letter <code>id</code> attributes and turned off by default. But if you can control your environment (typical for demos), you can turn this on for a smaller decoder.
 <p id=optimize><strong>Optimize parameters</strong> button searches for better modelling parameters. At the first click it runs a quick search that takes 10 seconds for typical 30 KB input, and subsequent click will run a full search. Parameters are solely related to the compression ratio so you can try this as many as you can afford.
-
+<p><strong>exe</strong> select decoder type. <em>small</em> means smaller and faster decoder. <em>zippable</em> means compressible by zip.
+<p><strong>zip size</strong> gives size estimation of zip(slower)
 <h3>Advanced Configuration</h3>
 <!--<p id=uncompressed-only><strong>Optimize for uncompressed size</strong> assumes the absence of the outer comperssion algorithm like DEFLATE. This is <em>bad</em> for the compression since the compressor has to work strictly within the limits of JS source code including escape sequences. This should be the last resort where you can't even use the PNG-based self extraction and everything has to be in a single file.-->
 <p>Following parameters can be automatically optimized and normally you don't have to touch them unless you want to reproduce a particular set of parameters.
@@ -353,7 +352,7 @@ const compress=async optimize=>{
 		if(numAbbreviations<0||64<numAbbreviations)throw"invalid number of abbreviations";
 
 		await withResourcePool(async resourcePool=>{
-			const options={maxMemoryMB,resourcePool,sparseSelectors,precision,recipLearningRate,modelMaxCount,modelRecipBaseCount,dynamicModels,numAbbreviations,allowFreeVars:$dirty.checked,zip:zip.checked};
+			const options={maxMemoryMB,resourcePool,sparseSelectors,precision,recipLearningRate,modelMaxCount,modelRecipBaseCount,dynamicModels,numAbbreviations,allowFreeVars:$dirty.checked,zip:zip.checked,exe:exe.selectedIndex};
 
 			let prefix='',st=performance.now();
 			const packer=new Packer(inputs, options);
