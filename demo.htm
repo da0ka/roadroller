@@ -1,10 +1,10 @@
 <!doctype html><meta charset=utf-8><meta name=viewport content=width=device-width,initial-scale=0.8,user-scalable=no><title>Roadroller: Flattens Your JavaScript Demo</title><style>
 html{background:snow;color:#111;box-sizing:border-box;line-height:1.5}
 code,input,button,select,pre,textarea{font:1em MS Gothic,monospace}
-code,pre{background:#fd7}
+code,pre,#\$output1{background:#fd7}
 *,:after,:before{box-sizing:inherit}
 body,h1,h2,h3,ol,p,ul{margin:0;padding:0;font-weight:400}
-body{margin:0 auto}
+body{margin:0 auto;overflow-x:hidden}
 ol,p,ul{margin:1em 0}
 h1,h2,h3{color:#45a}
 h1{font-size:2em}
@@ -36,9 +36,7 @@ fieldset>form ul{margin:0;column-count:2}
 @media screen and (max-width:62em){fieldset>form ul{column-count:1}}
 fieldset>form ul.c\$inline{display:flex;flex-wrap:wrap;column-gap:1em}
 fieldset>form li{list-style:none}
-fieldset>pre{margin:0;padding:.5em;order:3;white-space:pre-wrap;word-break:break-all;user-select:all}
-fieldset>pre>span:first-child{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
-fieldset>textarea{width:100%;background:#fff;border:0;margin:0;padding:.5em;resize:vertical;min-height:10em;order:3}
+fieldset>textarea{width:100%;background:#fff;border:0;margin:0;padding:.5em;resize:vertical;min-height:9em;order:3}
 fieldset>aside{font-size:80%;color:red;padding:.2rem .5rem 0;order:2}
 fieldset.c\$input>aside{background:#fff}
 fieldset.c\$output>aside{background:#fe7}
@@ -84,14 +82,16 @@ input[type=number]{width:5em}
 	<span><strong>Output</strong> (<span id=$outputsize>0B</span>)</span>
 	<button id=$newwindow hidden>Test in new window</button>
 </header>
-<pre><span id=$output1></span><span id=$output2></span></pre>
+<textarea id=$output1 onfocus=select()></textarea>
 <aside id=$outputmessage></aside>
 <form><ul>
 <li><label>Number of contexts: <input id=$numcontexts type=number value=12 min=1 max=64></label> <a href=#num-contexts title=Help></a>
 <li><label>Maximum memory usage: <input id=$maxmemory type=number value=150 min=10 max=1024> MB(<span id=$usedmemory>-</span> MB in use)</label> <a href=#max-memory title=Help></a>
 <li><label><input type=checkbox id=$dirty> Allow the decoder to pollute the global scope</label> <a href=#dirty title=Help></a>
 <li><input type=reset id=$reset value="Reset parameters"> <button id=$optimize>Optimize parameters</button> <a href=#optimize title=Help></a>
-<li>exe:<select id=exe><option>small<option>zippable</select> <label><input type=checkbox id=zip>zip size</label>
+<li>exe:<select id=exe><option>small<option>zippable</select>
+<label><input type=checkbox id=zip>zip size</label>
+<label><input type=checkbox id=line>add line</label>
 </ul><details><summary>Advanced configuration</summary><ul>
 <li><label>Chosen contexts: <input id=$selectors pattern=\d+(,\d+)+></label> <a href=#chosen-contexts title=Help></a>
 <li><label>Precision: <input id=$precision type=number value=16 min=1 max=21></label> <a href=#precision title=Help></a>
@@ -290,7 +290,7 @@ const initOutput=()=>{
 		optimizing=!0;
 		$reset.disabled=$optimize.disabled=!0;
 		try{await compress(!0)}
-		finally{reset.disabled=$optimize.disabled=optimizing=!1}
+		finally{$reset.disabled=$optimize.disabled=optimizing=!1}
 	}
 };
 let initialRefresh=1,output=null,optimizing=0,lastOptimizationLevel=0,
@@ -352,10 +352,9 @@ const compress=async optimize=>{
 		if(numAbbreviations<0||64<numAbbreviations)throw"invalid number of abbreviations";
 
 		await withResourcePool(async resourcePool=>{
-			const options={maxMemoryMB,resourcePool,sparseSelectors,precision,recipLearningRate,modelMaxCount,modelRecipBaseCount,dynamicModels,numAbbreviations,allowFreeVars:$dirty.checked,zip:zip.checked,exe:exe.selectedIndex};
-
+			const options={maxMemoryMB,resourcePool,sparseSelectors,precision,recipLearningRate,modelMaxCount,modelRecipBaseCount,dynamicModels,numAbbreviations,allowFreeVars:$dirty.checked,zip:zip.checked,exe:exe.selectedIndex,line:line.checked?"\n":""};
 			let prefix='',st=performance.now();
-			const packer=new Packer(inputs, options);
+			const packer=new Packer(inputs,options);
 			$usedmemory.textContent=packer.memoryUsageMB.toFixed(1);
 
 			if(optimize){
@@ -385,15 +384,14 @@ const compress=async optimize=>{
 			const packed=packer.makeDecoder();
 			if(!optimize&&lastRefreshTicks!==refreshTicks)return;
 			output=packed.firstLine+packed.secondLine;
-			$output1.textContent=packed.firstLine;
-			$output2.textContent=packed.secondLine;
+			$output1.value=packed.firstLine+options.line+packed.secondLine;
 			updateOutput(prefix,origLength,packed.estimateLength(zip.checked));
 		});
 		$newwindow.hidden=false;
 	}catch(e){
 		$outputsize.textContent='failed';
 		$outputmessage.textContent='Error: '+e;
-		$output1.textContent=$output2.textContent='';
+		$output1.value='';
 		console.error(e)
 	}finally{
 		lastRefreshTicks===refreshTicks&&$output.classList.remove("c$outdated")

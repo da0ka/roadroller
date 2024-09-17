@@ -613,8 +613,7 @@ class Packer{
 		const quotes=[...quotesSeen].sort((a,b)=>a-b);
 
 		// 2+ decimal points doesn't seem to make any difference after DEFLATE
-		const modelBaseCount={1:'1',2:'.5',5:'.2',10:'.1'}[modelRecipBaseCount]||`1/${modelRecipBaseCount}`;
-
+		let a="1/"+modelRecipBaseCount,b=(1/modelRecipBaseCount+"").slice(1)||1,modelBaseCount=a.length<b.length?a:b;
 		// JS allows \0 but <script> replace it with U+FFFE,
 		// so we are fine to use it with eval but not outside.
 		const charEscapesInTemplate={
@@ -813,7 +812,7 @@ class Packer{
 				`τ=τ*${1<<outBits}|ι.charCodeAt(ρ++)&${(1<<outBits)-1}`+
 			`);`:
 		//fast & small decoder
-		`for(${options.allowFreeVars?`ο=[τ=ρ=λ=Σ=${quotes.length>0?'χ=':''}0],β=[],α=[]`:''};ν=λ<${inputLength};${quotes.length?`ο[λ++]=ν-=${1<<inBits},χ=χ?ν-χ&&χ:${quotes.length>1?`(${quotes.map(q=>`ν==${q}`).join('|')})&&ν`:`ν==${quotes[0]}&&ν`}`:`ο[λ++]=ν-${1<<inBits}`})for(;ν<${1<<inBits};ν+=ν+μ){for(δ of'${selectors.map(i=>i.join('')).join(0)}'.split(ε=0)){φ=0;for(δ of δ)φ=997*φ+(ο[λ-δ]|0)|0;φ=2*π[α[Σ]=${numModels}*(${pow2(contextBits)}-1&997*φ+ν${quotes.length?'+!!χ*129':''})+Σ]+1,β[Σ]=φ=Math.log(φ/(θ-φ)),ε-=φ*ω[Σ++]}for(ε=~-θ/(1+Math.exp(ε))|1;τ<32*θ;τ=64*τ|63&ι.charCodeAt(ρ++));for(μ=τ%θ<ε,τ=τ%θ+(μ?ε:θ-ε)*(τ>>${precision+1})-!μ*ε;Σ;ω[Σ]+=β[Σ]/${recipLearningRate}*(μ-ε/θ))π[δ=α[--Σ]]+=(μ*${pow2(precision)}-π[δ]<<${29-precision})/((κ[δ]+=κ[δ]<${modelMaxCount})+${modelBaseCount})>>${29-precision}}`;
+		`for(${options.allowFreeVars?`ο=[τ=ρ=λ=Σ=${quotes.length>0?'χ=':''}0],β=[],α=[]`:''};ν=λ<${inputLength};${quotes.length?`ο[λ++]=ν-=${1<<inBits},χ=χ?ν-χ&&χ:${quotes.length>1?`(${quotes.map(q=>`ν==${q}`).join('|')})&&ν`:`ν==${quotes[0]}&&ν`}`:`ο[λ++]=ν-${1<<inBits}`})for(;ν<${1<<inBits};ν+=ν+μ){for(δ of'${selectors.map(i=>i.join('')).join(0)}'.split(ε=0)){φ=0;for(δ of δ)φ=φ*997+(ο[λ-δ]|0)|0;φ=2*π[α[Σ]=${numModels}*(${pow2(contextBits)}-1&φ*997+ν${quotes.length?'+!!χ*129':''})+Σ]+1,β[Σ]=φ=Math.log(φ/(θ-φ)),ε-=φ*ω[Σ++]}for(ε=~-θ/(1+Math.exp(ε))|1;τ<32*θ;τ=64*τ|63&ι.charCodeAt(ρ++));for(μ=τ%θ<ε,τ=τ%θ+(μ?ε:θ-ε)*(τ>>${precision+1})-!μ*ε;Σ;ω[Σ]+=β[Σ]/${recipLearningRate}*(μ-ε/θ))π[δ=α[--Σ]]+=(μ*${pow2(precision)}-π[δ]<<${29-precision})/((κ[δ]+=κ[δ]<${modelMaxCount})+${modelBaseCount})>>${29-precision}}`;
 
 		// 10. postprocessing and action
 		// also should clobber π and κ unless they are function arguments,
